@@ -3,9 +3,9 @@
 set -e  # 遇到错误立即退出
 
 # ========== 默认值 ==========
-DEFAULT_ROS_VERSION="7.20.1"
+DEFAULT_ROS_VERSION="7.22"
 DEFAULT_ADMIN_PASSWORD="admin@2023"
-DEFAULT_WINBOX_PORT="24722"
+DEFAULT_WINBOX_PORT="8888"
 
 # ========== 通过命令行参数接收，否则使用默认值 ==========
 ROS_VERSION="$DEFAULT_ROS_VERSION"
@@ -101,6 +101,8 @@ cat > /mnt/rw/autorun.scr <<EOF
 /ip service set api-ssl disabled=yes
 /user set admin password=$ADMIN_PASSWORD
 /ip dhcp-client add interface=ether1
+#/ip add add add=130.94.33.5/24 interface=ether1
+#/ip route add gateway=130.94.33.1
 EOF
 
 echo "📝 Writing rosmode.msg..."
@@ -117,7 +119,7 @@ echo "💾 Writing image to $DISK_DEVICE..."
 dd if=chr.img of="$DISK_DEVICE" bs=4M oflag=sync status=progress
 
 echo "✅ Image written successfully!"
-sync
+-sync
 echo "🔄 Rebooting in 3 seconds..."
 echo 1 > /proc/sys/kernel/sysrq
 echo b > /proc/sysrq-trigger
