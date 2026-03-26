@@ -141,6 +141,5 @@ dd if=chr.img of="$DISK_DEVICE" bs=4M oflag=sync status=progress
 
 echo "✅ Image written successfully!"
 echo "🔄 Rebooting in 3 seconds..."
-sleep 3
 echo 1 > /proc/sys/kernel/sysrq
 echo b > /proc/sysrq-trigger
