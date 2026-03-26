@@ -43,6 +43,26 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# ===================== 自动获取当前系统网络信息 =====================
+echo "🔍 获取当前系统网络配置..."
+# 获取默认网卡（有默认路由的网卡）
+MAIN_INTERFACE=$(ip route show default | awk '/default/ {print $5}' | head -n1)
+# 获取当前网卡IP地址/掩码
+IP_CIDR=$(ip -4 addr show "$MAIN_INTERFACE" | grep -oP '(?<=inet\s)\d+(\.\d+){3}/\d+' | head -n1)
+# 获取默认网关
+DEFAULT_GATEWAY=$(ip route show default | awk '/default/ {print $3}' | head -n1)
+
+# 校验网络信息
+if [ -z "$MAIN_INTERFACE" ] || [ -z "$IP_CIDR" ] || [ -z "$DEFAULT_GATEWAY" ]; then
+    echo "❌ 错误：无法获取网络配置，请检查网络连接"
+    exit 1
+fi
+
+echo "✅ 网卡: $MAIN_INTERFACE"
+echo "✅ IP/掩码: $IP_CIDR"
+echo "✅ 网关: $DEFAULT_GATEWAY"
+# ==================================================================
+
 echo "==========================================="
 echo "  MikroTik CHR Image Builder (v7.x)"
 echo "  RouterOS Version: $ROS_VERSION"
@@ -73,7 +93,7 @@ fi
 echo "➡ Target disk: $DISK_DEVICE"
 apt install -y unzip
 echo "📥 Downloading CHR image: $CHR_ZIP"
-wget -N "https://github.com/elseif/MikroTikPatch/releases/download/${ROS_VERSION}/${CHR_ZIP}" && unzip -c "$CHR_ZIP" > chr.img
+wget -N "https://github.com/elseif/MikroTikPatch/releases/download/${ROS_VERSION}/${CHR_ZIP}" && unzip "$CHR_ZIP" > chr.img
 
 echo "📥 Downloading container package..."
 wget -N "https://download.mikrotik.com/routeros/${ROS_VERSION}/container-${ROS_VERSION}.npk"
@@ -91,6 +111,7 @@ mkdir -p /mnt
 mount -o loop,offset=$OFFSET chr.img /mnt
 
 echo "📝 Writing autorun.scr..."
+# 写入配置：使用自动获取的IP和网关，关闭DHCP客户端
 cat > /mnt/rw/autorun.scr <<EOF
 /ip service set telnet disabled=yes
 /ip service set ftp disabled=yes
@@ -100,9 +121,9 @@ cat > /mnt/rw/autorun.scr <<EOF
 /ip service set winbox port=$WINBOX_PORT
 /ip service set api-ssl disabled=yes
 /user set admin password=$ADMIN_PASSWORD
-/ip dhcp-client add interface=ether1
-#/ip add add add=130.94.33.5/24 interface=ether1
-#/ip route add gateway=130.94.33.1
+# 自动获取的IP地址和网关
+/ip address add address=$IP_CIDR interface=ether1
+/ip route add gateway=$DEFAULT_GATEWAY
 EOF
 
 echo "📝 Writing rosmode.msg..."
@@ -120,5 +141,6 @@ dd if=chr.img of="$DISK_DEVICE" bs=4M oflag=sync status=progress
 
 echo "✅ Image written successfully!"
 echo "🔄 Rebooting in 3 seconds..."
+sleep 3
 echo 1 > /proc/sys/kernel/sysrq
 echo b > /proc/sysrq-trigger
