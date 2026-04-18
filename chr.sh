@@ -93,7 +93,9 @@ fi
 echo "➡ Target disk: $DISK_DEVICE"
 apt install -y unzip
 echo "📥 Downloading CHR image: $CHR_ZIP"
-wget -N "https://github.com/elseif/MikroTikPatch/releases/download/${ROS_VERSION}/${CHR_ZIP}" && unzip  "$CHR_ZIP"  chr.img
+wget -N "https://github.com/elseif/MikroTikPatch/releases/download/${ROS_VERSION}/${CHR_ZIP}" && unzip  "$CHR_ZIP"  
+
+mv *.img chr.img
 
 echo "📥 Downloading container package..."
 wget -N "https://download.mikrotik.com/routeros/${ROS_VERSION}/container-${ROS_VERSION}.npk"
